@@ -1,7 +1,7 @@
 # TurboGHA - Turborepo Caching for GitHub Actions
 
 [![CI Status](https://github.com/globodai-group/caching-for-turbo/workflows/CI/badge.svg)](https://github.com/globodai-group/caching-for-turbo/actions)
-[![npm version](https://badge.fury.io/js/@globodai-group%2Fturbogha.svg)](https://www.npmjs.com/package/@globodai-group/turbogha)
+[![npm version](https://badge.fury.io/js/@globodai-group%2Fturbogha.svg)](https://www.npmjs.com/package/@artik0din/turbogha)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Fast and free [Turborepo](https://turbo.build/repo/) remote caching for GitHub
@@ -98,7 +98,7 @@ Use the same caching infrastructure locally with the CLI:
 ### Installation
 
 ```bash
-npm install -g @globodai-group/turbogha
+npm install -g @artik0din/turbogha
 ```
 
 ### Usage

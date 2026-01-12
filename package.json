@@ -1,5 +1,5 @@
 {
-  "name": "@globodai-group/turbogha",
+  "name": "@artik0din/turbogha",
   "description": "Turborepo Remote Caching for GitHub Actions - Fast, free, and independent from Vercel",
   "version": "1.0.0",
   "private": false,
