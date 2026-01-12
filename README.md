@@ -1,7 +1,7 @@
 # TurboGHA - Turborepo Caching for GitHub Actions
 
-[![CI Status](https://github.com/artik0din/caching-for-turbo/workflows/CI/badge.svg)](https://github.com/artik0din/caching-for-turbo/actions)
-[![npm version](https://badge.fury.io/js/@artik0din%2Fturbogha.svg)](https://www.npmjs.com/package/@artik0din/turbogha)
+[![CI Status](https://github.com/globodai-group/caching-for-turbo/workflows/CI/badge.svg)](https://github.com/globodai-group/caching-for-turbo/actions)
+[![npm version](https://badge.fury.io/js/@globodai-group%2Fturbogha.svg)](https://www.npmjs.com/package/@globodai-group/turbogha)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Fast and free [Turborepo](https://turbo.build/repo/) remote caching for GitHub
@@ -22,7 +22,7 @@ Add this step **before** your `turbo build` command:
 
 ```yaml
 - name: Setup Turbo Cache
-  uses: artik0din/caching-for-turbo@v1
+  uses: globodai-group/caching-for-turbo@v1
 
 - name: Build
   run: turbo build
@@ -42,7 +42,7 @@ That's it! Your Turborepo builds now use GitHub's built-in cache.
 ### Basic Options
 
 ```yaml
-- uses: artik0din/caching-for-turbo@v1
+- uses: globodai-group/caching-for-turbo@v1
   with:
     # Storage provider: 'github' (default) or 's3'
     provider: github
@@ -59,7 +59,7 @@ That's it! Your Turborepo builds now use GitHub's built-in cache.
 Prevent unbounded cache growth with automatic cleanup:
 
 ```yaml
-- uses: artik0din/caching-for-turbo@v1
+- uses: globodai-group/caching-for-turbo@v1
   with:
     # Remove entries older than specified duration
     max-age: 2w # 1d, 1w, 1mo supported
@@ -76,7 +76,7 @@ Prevent unbounded cache growth with automatic cleanup:
 For teams needing more control over caching infrastructure:
 
 ```yaml
-- uses: artik0din/caching-for-turbo@v1
+- uses: globodai-group/caching-for-turbo@v1
   with:
     provider: s3
     s3-bucket: my-turbo-cache
@@ -98,7 +98,7 @@ Use the same caching infrastructure locally with the CLI:
 ### Installation
 
 ```bash
-npm install -g @artik0din/turbogha
+npm install -g @globodai-group/turbogha
 ```
 
 ### Usage
