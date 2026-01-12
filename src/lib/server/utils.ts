@@ -66,9 +66,10 @@ export async function launchServer(devRun?: boolean): Promise<void> {
 }
 
 export async function killServer() {
-  //* Kill the server
+  const token = process.env.TURBOGHA_SHUTDOWN_TOKEN || 'turbogha-internal'
   await fetch(`http://localhost:${serverPort}/shutdown`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: { 'x-shutdown-token': token }
   })
 }
 
