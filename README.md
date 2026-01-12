@@ -1,24 +1,27 @@
-# TurboGHA - Turborepo Caching for GitHub Actions
+# TurboGHA
 
-[![CI Status](https://github.com/globodai-group/caching-for-turbo/workflows/CI/badge.svg)](https://github.com/globodai-group/caching-for-turbo/actions)
-[![npm version](https://badge.fury.io/js/@globodai-group%2Fturbogha.svg)](https://www.npmjs.com/package/@artik0din/turbogha)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+> Supercharge your Turborepo builds with free, self-hosted remote caching on GitHub Actions
 
-Fast and free [Turborepo](https://turbo.build/repo/) remote caching for GitHub
-Actions. No Vercel account needed.
+[![CI](https://github.com/globodai-group/caching-for-turbo/actions/workflows/ci.yml/badge.svg)](https://github.com/globodai-group/caching-for-turbo/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@artik0din/turbogha)](https://www.npmjs.com/package/@artik0din/turbogha)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-## Features
+## Why TurboGHA?
 
-- **Independent from Vercel** - No account or tokens required
-- **Multiple Storage Backends** - GitHub Actions Cache (default) or AWS S3
-- **Cross-Platform** - Works on Linux, Windows, and macOS runners
-- **Local Development** - Use the same caching infrastructure locally
-- **Automatic Cleanup** - Configure max-age, max-files, or max-size policies
-- **Zero Configuration** - Works out of the box with sensible defaults
+[Turborepo](https://turbo.build/repo/) is amazing for monorepo builds, but remote caching typically requires a Vercel account. **TurboGHA** provides a free, self-hosted alternative that runs entirely within GitHub's ecosystem.
+
+| | TurboGHA | Vercel Remote Cache |
+|---|:---:|:---:|
+| **Cost** | Free | Paid (large teams) |
+| **Setup** | 1 line | Account + tokens |
+| **Storage** | GitHub Cache / S3 | Vercel only |
+| **Control** | Full | Limited |
+| **Dependencies** | None | Vercel account |
 
 ## Quick Start
 
-Add this step **before** your `turbo build` command:
+Add this step **before** your `turbo` commands:
 
 ```yaml
 - name: Setup Turbo Cache
@@ -28,52 +31,80 @@ Add this step **before** your `turbo build` command:
   run: turbo build
 ```
 
-That's it! Your Turborepo builds now use GitHub's built-in cache.
+That's it! Your builds now use GitHub's built-in cache system.
 
 ## How It Works
 
-1. Starts a local caching server on `localhost:41230`
-2. Sets up `TURBO_API`, `TURBO_TOKEN`, and `TURBO_TEAM` environment variables
-3. Turborepo sends cache requests to this local server
-4. The server stores/retrieves artifacts from GitHub Cache or S3
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     GitHub Actions Runner                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────┐    HTTP     ┌──────────────┐                  │
+│  │  Turbo  │ ──────────► │  TurboGHA    │                  │
+│  │  Build  │ ◄────────── │  Server      │                  │
+│  └─────────┘             │  :41230      │                  │
+│                          └──────┬───────┘                  │
+│                                 │                          │
+│                                 ▼                          │
+│                    ┌────────────────────────┐              │
+│                    │   Storage Backend      │              │
+│                    │  ┌─────────┐ ┌─────┐   │              │
+│                    │  │ GitHub  │ │ S3  │   │              │
+│                    │  │ Cache   │ │     │   │              │
+│                    │  └─────────┘ └─────┘   │              │
+│                    └────────────────────────┘              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+1. **Setup Phase**: Starts a local Fastify server on `localhost:41230`
+2. **Environment**: Configures `TURBO_API`, `TURBO_TOKEN`, `TURBO_TEAM`
+3. **Caching**: Intercepts Turbo cache requests and stores in GitHub Cache or S3
+4. **Cleanup**: Gracefully shuts down and displays statistics
 
 ## Configuration
 
-### Basic Options
+### Basic Usage
+
+```yaml
+- uses: globodai-group/caching-for-turbo@v1
+```
+
+### With Options
 
 ```yaml
 - uses: globodai-group/caching-for-turbo@v1
   with:
-    # Storage provider: 'github' (default) or 's3'
+    # Storage backend: 'github' (default) or 's3'
     provider: github
 
-    # Cache key prefix
-    cache-prefix: turbogha_
+    # Cache key prefix (useful for cache isolation)
+    cache-prefix: my-project_
 
-    # Server port (default: 41230)
+    # Server port
     server-port: 41230
 ```
 
-### Cache Cleanup
+### Cache Management
 
-Prevent unbounded cache growth with automatic cleanup:
+Prevent unbounded cache growth:
 
 ```yaml
 - uses: globodai-group/caching-for-turbo@v1
   with:
-    # Remove entries older than specified duration
-    max-age: 2w # 1d, 1w, 1mo supported
+    # Remove entries older than duration
+    max-age: 2w          # Supports: 1d, 1w, 1mo
 
     # Keep only N most recent entries
     max-files: 300
 
-    # Remove oldest when total size exceeds limit
-    max-size: 5gb # 100mb, 1gb, 10gb supported
+    # Remove oldest when size exceeds limit
+    max-size: 5gb        # Supports: 100mb, 1gb, 10gb
 ```
 
 ### S3 Storage
 
-For teams needing more control over caching infrastructure:
+For teams needing dedicated infrastructure:
 
 ```yaml
 - uses: globodai-group/caching-for-turbo@v1
@@ -83,48 +114,61 @@ For teams needing more control over caching infrastructure:
     s3-region: us-east-1
     s3-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
     s3-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
     # Optional
     s3-endpoint: https://s3.amazonaws.com
-    s3-prefix: turbogha/
-    s3-session-token: ${{ secrets.AWS_SESSION_TOKEN }} # For OIDC
+    s3-prefix: cache/
+    s3-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 ```
 
-Works with any S3-compatible storage (AWS S3, MinIO, DigitalOcean Spaces, etc.)
+**Compatible with**: AWS S3, MinIO, DigitalOcean Spaces, Cloudflare R2, Backblaze B2
 
-## Local Development
+## CLI for Local Development
 
-Use the same caching infrastructure locally with the CLI:
+Use the same caching infrastructure locally:
 
 ### Installation
 
 ```bash
 npm install -g @artik0din/turbogha
+# or
+npx @artik0din/turbogha
 ```
 
-### Usage
+### Commands
 
 ```bash
-# Start the cache server
+# Start cache server (background)
 turbogha start
+
+# Start in foreground (for debugging)
+turbogha start --foreground
 
 # Check server status
 turbogha ping
 
-# Stop the server
+# Stop server
 turbogha kill
 ```
 
-### Environment Configuration
+### Local Configuration
 
-Create a `.env` file for S3 configuration:
+Create `.env` in your project root:
 
 ```env
+# Storage provider
 PROVIDER=s3
+
+# S3 credentials
 AWS_ACCESS_KEY_ID=your-key
 AWS_SECRET_ACCESS_KEY=your-secret
 AWS_REGION=us-east-1
 S3_BUCKET=my-bucket
 S3_PREFIX=turbogha/
+
+# Optional
+SERVER_PORT=41230
+CACHE_PREFIX=local_
 ```
 
 ### Using with Turbo
@@ -133,56 +177,121 @@ S3_PREFIX=turbogha/
 # Start the server
 turbogha start
 
-# Set environment variables (or add to shell profile)
+# Configure Turbo (add to .bashrc/.zshrc for persistence)
 export TURBO_API=http://localhost:41230
 export TURBO_TOKEN=turbogha
 export TURBO_TEAM=turbogha
 
-# Run turbo commands
+# Run builds with remote caching
 turbo build
 ```
 
-## Comparison
+## Inputs Reference
 
-### vs Vercel Remote Cache
+| Input | Description | Default |
+|-------|-------------|---------|
+| `provider` | Storage backend (`github` or `s3`) | `github` |
+| `cache-prefix` | Cache key prefix | `turbogha_` |
+| `server-port` | Local server port | `41230` |
+| `max-age` | Max cache age (e.g., `1w`, `1mo`) | - |
+| `max-files` | Max number of cached files | - |
+| `max-size` | Max total cache size (e.g., `5gb`) | - |
+| `s3-access-key-id` | AWS access key ID | - |
+| `s3-secret-access-key` | AWS secret access key | - |
+| `s3-session-token` | AWS session token (for OIDC) | - |
+| `s3-bucket` | S3 bucket name | - |
+| `s3-region` | S3 region | - |
+| `s3-endpoint` | S3 endpoint URL | `https://s3.amazonaws.com` |
+| `s3-prefix` | S3 object prefix | `turbogha/` |
 
-| Feature | This Action | Vercel               |
-| ------- | ----------- | -------------------- |
-| Cost    | Free        | Paid for large teams |
-| Setup   | One line    | Account + tokens     |
-| Storage | GitHub/S3   | Vercel only          |
-| Control | Full        | Limited              |
+## Examples
 
-### vs actions/cache
+### Monorepo with Multiple Apps
 
-| Feature          | This Action  | actions/cache  |
-| ---------------- | ------------ | -------------- |
-| Granularity      | Per-task     | Entire cache   |
-| Storage Backends | GitHub + S3  | GitHub only    |
-| Cleanup Policies | Configurable | Automatic only |
-| Local Dev        | Supported    | Not applicable |
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-## All Inputs
+      - uses: globodai-group/caching-for-turbo@v1
+        with:
+          cache-prefix: ${{ github.repository }}_
 
-| Input                  | Description                        | Default                    |
-| ---------------------- | ---------------------------------- | -------------------------- |
-| `provider`             | Storage backend (`github` or `s3`) | `github`                   |
-| `cache-prefix`         | Cache key prefix                   | `turbogha_`                |
-| `server-port`          | Local server port                  | `41230`                    |
-| `max-age`              | Max cache age (e.g., `1w`, `1mo`)  | -                          |
-| `max-files`            | Max number of cache files          | -                          |
-| `max-size`             | Max total cache size (e.g., `5gb`) | -                          |
-| `s3-access-key-id`     | AWS access key ID                  | -                          |
-| `s3-secret-access-key` | AWS secret access key              | -                          |
-| `s3-session-token`     | AWS session token (OIDC)           | -                          |
-| `s3-bucket`            | S3 bucket name                     | -                          |
-| `s3-region`            | S3 region                          | -                          |
-| `s3-endpoint`          | S3 endpoint URL                    | `https://s3.amazonaws.com` |
-| `s3-prefix`            | S3 object prefix                   | `turbogha/`                |
+      - run: npm ci
+      - run: turbo build --filter=@myorg/web
+      - run: turbo build --filter=@myorg/api
+```
+
+### Matrix Build with Isolated Caches
+
+```yaml
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: globodai-group/caching-for-turbo@v1
+        with:
+          cache-prefix: ${{ matrix.os }}_
+
+      - run: npm ci
+      - run: turbo build test lint
+```
+
+### S3 with Automatic Cleanup
+
+```yaml
+- uses: globodai-group/caching-for-turbo@v1
+  with:
+    provider: s3
+    s3-bucket: ${{ vars.CACHE_BUCKET }}
+    s3-region: eu-west-1
+    s3-access-key-id: ${{ secrets.AWS_KEY }}
+    s3-secret-access-key: ${{ secrets.AWS_SECRET }}
+    max-age: 1w
+    max-size: 10gb
+```
+
+## Performance Tips
+
+1. **Use cache prefixes** to isolate caches between branches/PRs
+2. **Set cleanup policies** to prevent cache bloat (especially with S3)
+3. **Use S3** for very large caches or cross-workflow sharing
+4. **Run cache server early** in your workflow for maximum benefit
+
+## Troubleshooting
+
+### Cache not being used
+
+- Ensure the action runs **before** any `turbo` commands
+- Check that `TURBO_API`, `TURBO_TOKEN`, `TURBO_TEAM` are set
+- Verify no conflicting Turbo remote cache configuration
+
+### Server fails to start
+
+- Check if port 41230 is available
+- Try a different port with `server-port` input
+- Check workflow logs for detailed error messages
+
+### S3 connection issues
+
+- Verify credentials have `s3:GetObject`, `s3:PutObject`, `s3:ListBucket` permissions
+- Check bucket region matches `s3-region` input
+- For custom endpoints, ensure `s3-endpoint` is correctly formatted
 
 ## Contributing
 
 ```bash
+# Clone the repository
+git clone https://github.com/globodai-group/caching-for-turbo.git
+cd caching-for-turbo
+
 # Install dependencies
 npm install
 
@@ -192,19 +301,22 @@ npm run dev-run
 # Build
 npm run bundle
 
-# Test
-npm test
+# Lint
+npm run lint
 ```
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Acknowledgements
+## Credits
 
-This project is based on work by:
+Built with inspiration from:
+- [rharkor/caching-for-turbo](https://github.com/rharkor/caching-for-turbo) - Original implementation
+- [dtinth/setup-github-actions-caching-for-turbo](https://github.com/dtinth/setup-github-actions-caching-for-turbo) - Original concept
 
-- [HUORT Louis (rharkor)](https://github.com/rharkor/caching-for-turbo) -
-  Original implementation
-- [dtinth](https://github.com/dtinth/setup-github-actions-caching-for-turbo) -
-  Original inspiration
+---
+
+<p align="center">
+  Made with care by <a href="https://github.com/globodai-group">Globodai Group</a>
+</p>
