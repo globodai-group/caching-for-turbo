@@ -1,5 +1,5 @@
 import * as coreLib from '@actions/core'
-import { logger as loggerLib } from '@rharkor/logger'
+import { logger as loggerLib } from './logger'
 
 const isCI = process.env.CI === 'true'
 
