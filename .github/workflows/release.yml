@@ -1,97 +1,46 @@
 name: Release
+
 on:
   push:
-    branches:
-      - main
-      - main-release
-
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read # for checkout
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
 
 jobs:
-  sync:
-    name: Sync
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # to be able to push to the main:release and rec:release branches
-      id-token: write # to enable use of OIDC for npm provenance
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v2
-        with:
-          app_id: ${{ vars.MYBOT_APP_ID }}
-          private_key: ${{ secrets.MYBOT_PRIVATE_KEY }}
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          token: ${{ steps.generate_token.outputs.token }}
-      - name: Setup Git Config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@example.com"
-
-      - name: Sync Branch
-        run: |
-          SOURCE="${GITHUB_REF_NAME}"
-          TARGET="${GITHUB_REF_NAME}-release"
-
-          # fetch both branches & tags
-          git fetch origin $TARGET:$TARGET
-          git fetch origin $SOURCE
-
-          # check out the release branch
-          git checkout $TARGET
-
-          # merge in main, taking main's version on all conflicts
-          git merge origin/$SOURCE --strategy=recursive -X theirs --no-edit
-
-          # now override package.json with main's copy
-          git checkout origin/$SOURCE -- package.json
-          git add package.json
-
-          # commit that one-file change
-          git commit -m "chore(sync): restore package.json from $SOURCE"
-
-          # push the updated branch (history + tags intact)
-          git push origin $TARGET
-        env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-
   release:
     name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # to be able to publish a GitHub release
-      issues: write # to be able to comment on released issues
-      pull-requests: write # to be able to comment on released pull requests
-      id-token: write # to enable use of OIDC for npm provenance
-    if: github.ref == 'refs/heads/main-release'
     steps:
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v2
-        with:
-          app_id: ${{ vars.MYBOT_APP_ID }}
-          private_key: ${{ secrets.MYBOT_PRIVATE_KEY }}
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ steps.generate_token.outputs.token }}
+          persist-credentials: false
+
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Package
+          node-version: '20'
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
         run: npm run package
+
+      - name: Verify Build
+        run: |
+          test -f dist/setup/index.js
+          test -f dist/post/index.js
+          test -f dist/cli/index.js
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
