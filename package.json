@@ -1,12 +1,12 @@
 {
-  "name": "@artik0din/turbogha",
+  "name": "@globodai-group/turbogha",
   "description": "Turborepo Remote Caching for GitHub Actions - Fast, free, and independent from Vercel",
   "version": "1.0.0",
   "private": false,
-  "homepage": "https://github.com/artik0din/caching-for-turbo",
+  "homepage": "https://github.com/globodai-group/caching-for-turbo",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/artik0din/caching-for-turbo.git"
+    "url": "git+https://github.com/globodai-group/caching-for-turbo.git"
   },
   "keywords": [
     "actions",
