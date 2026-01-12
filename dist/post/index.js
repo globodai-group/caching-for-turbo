@@ -27461,7 +27461,9 @@ const getTimestamp = () => {
     return new Date().toISOString().slice(11, 19);
 };
 const formatMessage = (color, prefix, message) => {
-    const timestamp = process.env.LOG_TIMESTAMPS === 'true' ? `${colors.gray}[${getTimestamp()}]${colors.reset} ` : '';
+    const timestamp = process.env.LOG_TIMESTAMPS === 'true'
+        ? `${colors.gray}[${getTimestamp()}]${colors.reset} `
+        : '';
     return `${timestamp}${color}${prefix}${colors.reset} ${message}`;
 };
 const logger = {
@@ -27555,6 +27557,14 @@ const core_core = {
         else {
             logger.success(message);
         }
+    },
+    warn: (message) => {
+        if (isCI) {
+            core.warning(message);
+        }
+        else {
+            logger.warn(message);
+        }
     }
 };
 
@@ -27588,27 +27598,32 @@ const getTempCachePath = (key) => join(env.RUNNER_TEMP || '/tmp', `cache-${key}.
 
 
 
-/**
- * The out script for the action.
- */
+const SHUTDOWN_TOKEN = process.env.TURBOGHA_SHUTDOWN_TOKEN || 'turbogha-internal';
 async function post() {
     try {
-        //* Kill the server
-        await fetch(`http://localhost:${serverPort}/shutdown`, {
-            method: 'DELETE'
+        // Shutdown server with auth token
+        const response = await fetch(`http://localhost:${serverPort}/shutdown`, {
+            method: 'DELETE',
+            headers: { 'x-shutdown-token': SHUTDOWN_TOKEN }
         });
-        //* Read the logs
-        const logs = await (0,promises_namespaceObject.readFile)(serverLogFile, 'utf-8');
-        //* Print the logs
-        core_core.info(logs);
+        if (!response.ok) {
+            core_core.warn(`Shutdown returned status ${response.status}`);
+        }
+        // Read and display logs
+        try {
+            const logs = await (0,promises_namespaceObject.readFile)(serverLogFile, 'utf-8');
+            core_core.info(logs);
+        }
+        catch {
+            core_core.info('No server logs available');
+        }
     }
     catch (error) {
-        // Fail the workflow run if an error occurs
-        if (error instanceof Error)
-            core_core.setFailed(error.message);
+        if (error instanceof Error) {
+            core_core.warn(`Server shutdown failed: ${error.message}`);
+        }
     }
 }
-// Run the out script
 post();
 
 

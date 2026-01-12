@@ -2,25 +2,32 @@ import { readFile } from 'fs/promises'
 import { serverLogFile, serverPort } from './lib/constants'
 import { core } from './lib/core'
 
-/**
- * The out script for the action.
- */
+const SHUTDOWN_TOKEN = process.env.TURBOGHA_SHUTDOWN_TOKEN || 'turbogha-internal'
+
 async function post(): Promise<void> {
   try {
-    //* Kill the server
-    await fetch(`http://localhost:${serverPort}/shutdown`, {
-      method: 'DELETE'
+    // Shutdown server with auth token
+    const response = await fetch(`http://localhost:${serverPort}/shutdown`, {
+      method: 'DELETE',
+      headers: { 'x-shutdown-token': SHUTDOWN_TOKEN }
     })
 
-    //* Read the logs
-    const logs = await readFile(serverLogFile, 'utf-8')
-    //* Print the logs
-    core.info(logs)
+    if (!response.ok) {
+      core.warn(`Shutdown returned status ${response.status}`)
+    }
+
+    // Read and display logs
+    try {
+      const logs = await readFile(serverLogFile, 'utf-8')
+      core.info(logs)
+    } catch {
+      core.info('No server logs available')
+    }
   } catch (error) {
-    // Fail the workflow run if an error occurs
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.warn(`Server shutdown failed: ${error.message}`)
+    }
   }
 }
 
-// Run the out script
 post()

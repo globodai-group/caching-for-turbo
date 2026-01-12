@@ -58,5 +58,12 @@ export const core = {
     } else {
       loggerLib.success(message)
     }
+  },
+  warn: (message: string) => {
+    if (isCI) {
+      coreLib.warning(message)
+    } else {
+      loggerLib.warn(message)
+    }
   }
 }
