@@ -3,7 +3,7 @@
 import { config } from 'dotenv'
 import { server } from './lib/server'
 import { killServer, launchServer } from './lib/server/utils'
-import { logger } from '@rharkor/logger'
+import { logger } from './lib/logger'
 import { ping } from './lib/ping'
 import { serverLogFile } from './lib/constants'
 import { writeFile } from 'fs/promises'

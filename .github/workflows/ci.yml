@@ -1,153 +1,130 @@
-name: Test core functionality
+name: CI
 
 on:
-  pull_request_target:
-    branches:
-      - main
-      - dev
-
+  push:
+    branches: [main, dev, rec]
+  pull_request:
+    branches: [main, dev, rec]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test-typescript:
-    name: TypeScript Tests
+  lint-and-build:
+    name: Lint & Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
-        id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: '20'
           cache: npm
 
       - name: Install Dependencies
-        id: npm-ci
         run: npm ci
 
       - name: Check Format
-        id: npm-format-check
         run: npm run format:check
 
       - name: Lint
-        id: npm-lint
         run: npm run lint
 
-  test-action:
-    name: GitHub Actions Test (Linux)
-    runs-on: ubuntu-latest
+      - name: Build
+        run: npm run package
 
+  test-linux:
+    name: Test (Linux)
+    runs-on: ubuntu-latest
+    needs: lint-and-build
     steps:
       - name: Checkout
-        id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: '20'
           cache: npm
 
       - name: Install Dependencies
-        id: npm-ci
         run: npm ci
+
+      - name: Build
+        run: npm run package
 
       - name: Test Local Action
         uses: ./
         with:
-          # Use a unique cache prefix for each pipeline & job
-          cache-prefix:
-            ${{ runner.os }}-${{ github.run_id }}-${{ github.run_number }}-${{
-            runner.os }}
+          cache-prefix: ci-${{ github.run_id }}-linux-
 
       - name: Test build cache
         run: npm run test
 
-      - name: Test build cache (full cache)
+      - name: Verify full cache
         run: ./check-full-turbo.sh
 
-  test-action-windows:
-    name: GitHub Actions Test (Windows)
+  test-windows:
+    name: Test (Windows)
     runs-on: windows-latest
-
+    needs: lint-and-build
     steps:
       - name: Checkout
-        id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: '20'
           cache: npm
 
       - name: Install Dependencies
-        id: npm-ci
         run: npm ci
+
+      - name: Build
+        run: npm run package
 
       - name: Test Local Action
         uses: ./
         with:
-          # Use a unique cache prefix for each pipeline & job
-          cache-prefix:
-            ${{ runner.os }}-${{ github.run_id }}-${{ github.run_number }}-${{
-            runner.os }}
+          cache-prefix: ci-${{ github.run_id }}-windows-
 
       - name: Test build cache
         run: npm run test
 
-      - name: Test build cache (full cache)
+      - name: Verify full cache
         run: ./check-full-turbo.sh
 
-  test-action-s3:
-    name: GitHub Actions Test (S3)
-    runs-on: ubuntu-latest
-
+  test-macos:
+    name: Test (macOS)
+    runs-on: macos-latest
+    needs: lint-and-build
     steps:
       - name: Checkout
-        id: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: '20'
           cache: npm
 
       - name: Install Dependencies
-        id: npm-ci
         run: npm ci
+
+      - name: Build
+        run: npm run package
 
       - name: Test Local Action
         uses: ./
         with:
-          # Use a unique cache prefix for each pipeline & job
-          cache-prefix:
-            ${{ runner.os }}-${{ github.run_id }}-${{ github.run_number }}-${{
-            runner.os }}
-          provider: s3
-          s3-access-key-id: ${{ secrets.S3_ACCESS_KEY_ID }}
-          s3-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          s3-bucket: ${{ secrets.S3_BUCKET }}
-          s3-region: ${{ secrets.S3_REGION }}
-          s3-endpoint: ${{ secrets.S3_ENDPOINT }}
-          max-age: 3m
-          max-size: 100mb
-          max-files: 100
-          server-port: 41231
+          cache-prefix: ci-${{ github.run_id }}-macos-
 
       - name: Test build cache
         run: npm run test
 
-      - name: Test build cache (full cache)
+      - name: Verify full cache
         run: ./check-full-turbo.sh
